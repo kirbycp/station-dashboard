@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Station Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel-raised: #1b212b;
+    --seam: #2a323d;
+    --seam-light: #3a4452;
+    --amber: #e8a33d;
+    --amber-dim: #6b5327;
+    --teal: #5fd4c4;
+    --teal-dim: #2c4c47;
+    --red: #d9645c;
+    --text: #e9e6dd;
+    --muted: #838d9a;
+    --muted-dim: #59626e;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at top left, rgba(232,163,61,0.05), transparent 45%),
+      radial-gradient(ellipse at bottom right, rgba(95,212,196,0.04), transparent 50%);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    padding: 28px 20px 60px;
+  }
+
+  .wrap{ max-width: 1080px; margin: 0 auto; }
+
+  /* ---------- Header strip ---------- */
+  .header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--seam);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin-bottom: 18px;
+    flex-wrap: nowrap;
+  }
+  .header > div{ min-width: 0; }
+  .header-clock{ flex-shrink: 0; }
+  .header-id{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .header-id .de{ color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; }
+  .header-id .call{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--amber);
+    letter-spacing: 0.03em;
+  }
+  .header-title{
+    font-size: 0.95rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .header-clock{
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: right;
+    line-height: 1.3;
+  }
+  .header-clock .utc-time{
+    font-size: 1.3rem;
+    color: var(--teal);
+    font-weight: 500;
+  }
+  .header-clock .utc-date{
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  .header-clock .local-time{
+    font-size: 1.1rem;
+    color: var(--amber);
+    font-weight: 500;
+    margin-top: 8px;
+  }
+  .header-clock .local-date{
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* ---------- Generic panel ---------- */
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--seam);
+    border-radius: 6px;
+    padding: 18px 20px 20px;
+    position: relative;
+  }
+  .panel::before{
+    content:"";
+    position:absolute; inset:5px;
+    border: 1px solid rgba(255,255,255,0.02);
+    border-radius: 4px;
+    pointer-events:none;
+  }
+  .plate-label{
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .src-badge{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+    border: 1px solid var(--seam);
+  }
+  .src-badge.live{ color: var(--teal); border-color: var(--teal-dim); }
+  .src-badge.cached{ color: var(--amber); border-color: var(--amber-dim); }
+
+  /* ---------- Gauge row ---------- */
+  .gauge-row{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .gauge-card{
+    text-align:center;
+    padding-top: 4px;
+  }
+  .gauge-card svg{ width: 100%; max-width: 190px; height:auto; }
+  .gauge-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-top: -34px;
+  }
+  .gauge-name{
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+  .gauge-note{
+    font-size: 0.68rem;
+    color: var(--muted-dim);
+    margin-top: 2px;
+  }
+
+  /* ---------- Status banner ---------- */
+  .status-banner{
+    display:flex; align-items:center; gap:10px;
+    padding: 10px 14px;
+    border-radius: 5px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    border: 1px solid var(--seam);
+    background: var(--panel-raised);
+  }
+  .status-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .status-banner.quiet{ border-color: var(--teal-dim); background: rgba(95,212,196,0.06); }
+  .status-banner.quiet .status-dot{ background: var(--teal); box-shadow: 0 0 6px var(--teal); }
+  .status-banner.unsettled{ border-color: var(--amber-dim); background: rgba(232,163,61,0.07); }
+  .status-banner.unsettled .status-dot{ background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .status-banner.storm{ border-color: rgba(217,100,92,0.5); background: rgba(217,100,92,0.08); }
+  .status-banner.storm .status-dot{ background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* ---------- Trend arrows ---------- */
+  .trend{ font-size: 0.7rem; margin-left: 5px; }
+  .trend.good{ color: var(--teal); }
+  .trend.bad{ color: var(--red); }
+  .trend.flat{ color: var(--muted-dim); }
+
+  /* ---------- Secondary stat strip ---------- */
+  .stat-strip{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 2px 0 16px;
+  }
+  .stat-item{
+    background: var(--panel-raised);
+    border: 1px solid var(--seam);
+    border-radius: 5px;
+    padding: 10px 8px;
+    text-align:center;
+  }
+  .stat-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .stat-label{
+    font-size: 0.64rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    margin-top: 3px;
+  }
+
+  /* ---------- Band conditions heatmap ---------- */
+  .bands-title-row{
+    display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;
+  }
+  .heat-legend{
+    display:flex; align-items:center; gap:8px; font-size: 0.68rem; color: var(--muted);
+  }
+  .heat-legend .bar{
+    width:90px; height:8px; border-radius:4px;
+    background: linear-gradient(90deg, var(--red), var(--amber), var(--teal));
+  }
+  .dx-target-select{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.7rem;
+    color: var(--text);
+    background: var(--panel-raised);
+    border: 1px solid var(--seam);
+    border-radius: 4px;
+    padding: 3px 6px;
+    margin-right: 10px;
+  }
+
+  .band-grid-wrap{ overflow-x:auto; margin-top:14px; display:flex; justify-content:center; }
+  .band-grid{
+    display:grid;
+    grid-template-columns: 42px repeat(24, 22px);
+    gap: 3px;
+    min-width: 640px;
+    flex-shrink: 0;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .band-grid .row-label{ color: var(--muted); font-size: 0.68rem; align-self:center; white-space:nowrap; }
+  .band-grid .hour-head{
+    text-align:center; color: var(--muted); font-size: 0.56rem; padding-bottom:4px; white-space:nowrap;
+  }
+  .band-cell{
+    height: 20px;
+    border-radius: 3px;
+    position: relative;
+  }
+  .band-cell.now::after{
+    content:'';
+    position:absolute; inset:-2px;
+    border: 1px solid var(--text);
+    border-radius: 5px;
+    pointer-events:none;
+  }
+
+
+  /* ---------- Software tiles ---------- */
+  .soft-note{
+    font-size: 0.74rem;
+    color: var(--muted-dim);
+    margin: -6px 0 14px;
+    line-height:1.5;
+  }
+  .tile-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  .tile-card{
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    background: var(--panel-raised);
+    border: 1px solid var(--seam);
+    border-radius: 6px;
+    padding: 16px 12px 14px;
+    gap: 8px;
+  }
+  .tile-title{ font-weight: 600; font-size: 0.92rem; }
+  .tile-sub{ display:block; font-size: 0.7rem; color: var(--muted); font-weight:400; margin-top:1px; }
+  .tile-actions{ display:flex; flex-direction:column; align-items:center; gap: 6px; width:100%; margin-top:4px; }
+  .tile-actions .btn.primary{ width:100%; }
+  .btn{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 7px 12px;
+    border-radius: 4px;
+    text-decoration:none;
+    border: 1px solid var(--seam-light);
+    color: var(--text);
+    background: transparent;
+    transition: border-color .15s, color .15s;
+  }
+  .btn:hover{ color: var(--amber); border-color: var(--amber-dim); }
+  .btn.primary{
+    background: var(--amber-dim);
+    border-color: var(--amber-dim);
+    color: #fbead0;
+  }
+  .btn.primary:hover{ border-color: var(--amber); color: #fff3de; }
+
+  /* ---------- WWV bulletin + outlook ---------- */
+  .wwv-line{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--muted);
+    margin: 12px 0 0;
+    line-height: 1.6;
+  }
+  .wwv-line b{ color: var(--text); font-weight: 600; }
+  .outlook-row{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .outlook-day{
+    background: var(--panel-raised);
+    border: 1px solid var(--seam);
+    border-radius: 5px;
+    padding: 10px 8px;
+    text-align:center;
+  }
+  .outlook-date{ font-size: 0.68rem; color: var(--muted); letter-spacing: 0.04em; }
+  .outlook-kp{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 1rem; font-weight: 600; margin-top: 4px;
+  }
+  .outlook-label{ font-size: 0.68rem; margin-top: 2px; }
+  .outlook-label.quiet{ color: var(--teal); }
+  .outlook-label.unsettled{ color: var(--amber); }
+  .outlook-label.storm{ color: var(--red); }
+
+  /* ---------- Weather panel ---------- */
+  .weather-current{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .weather-temp{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 2.2rem; font-weight: 600; color: var(--amber);
+  }
+  .weather-meta{ font-size: 0.8rem; color: var(--muted); line-height:1.7; }
+  .weather-meta b{ color: var(--text); font-weight: 600; }
+  .weather-days{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .weather-day{
+    background: var(--panel-raised);
+    border: 1px solid var(--seam);
+    border-radius: 5px;
+    padding: 10px 8px;
+    text-align:center;
+  }
+  .weather-day .wd-date{ font-size: 0.68rem; color: var(--muted); }
+  .weather-day .wd-cond{ font-size: 0.72rem; margin: 4px 0; }
+  .weather-day .wd-temps{ font-family:'IBM Plex Mono', monospace; font-size: 0.85rem; }
+  .weather-day .wd-wind{ font-size: 0.64rem; color: var(--muted-dim); margin-top: 3px; }
+  .weather-note{ font-size: 0.68rem; color: var(--muted-dim); margin-top: 10px; line-height:1.5; }
+  .weather-note a{ color: var(--teal); }
+
+  /* ---------- Upcoming contests newsfeed ticker ---------- */
+  .contest-ticker{
+    height: 34px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+  }
+  .contest-track{ display:flex; flex-direction:row; align-items:center; white-space:nowrap; }
+  .contest-track.scrolling{ animation-name: contest-scroll; animation-timing-function: linear; animation-iteration-count: infinite; }
+  .contest-ticker:hover .contest-track.scrolling{ animation-play-state: paused; }
+  @keyframes contest-scroll{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(-50%); }
+  }
+  .contest-item{
+    display: inline-flex; align-items: baseline; gap: 8px;
+    padding: 0 20px;
+    white-space: nowrap;
+    border-right: 1px solid var(--seam);
+    font-size: 0.85rem;
+  }
+  .contest-item a{ color: var(--text); text-decoration:none; }
+  .contest-item a:hover{ color: var(--teal); }
+  .contest-when{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.66rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .contest-badge{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .contest-badge.now{ color: var(--red); border: 1px solid rgba(217,100,92,0.5); }
+  .contest-badge.soon{ color: var(--amber); border: 1px solid var(--amber-dim); }
+
+  footer{
+    text-align:center;
+    color: var(--muted-dim);
+    font-size: 0.72rem;
+    margin-top: 26px;
+    line-height:1.6;
+  }
+  footer a{ color: var(--muted); }
+
+  @media (max-width: 720px){
+    .gauge-row{ gap: 6px; }
+    .gauge-card svg{ max-width: 140px; }
+    .gauge-value{ font-size: 1.25rem; margin-top: -25px; }
+    .gauge-name{ font-size: 0.68rem; }
+    .stat-strip{ grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .stat-value{ font-size: 0.85rem; }
+    .header{ padding: 14px 16px; }
+    .header-id .call{ font-size: 1.15rem; }
+    .header-title{ font-size: 0.8rem; }
+    .header-clock .utc-time{ font-size: 1.05rem; }
+    .header-clock .local-time{ font-size: 0.9rem; margin-top: 6px; }
+  }
+  @media (max-width: 480px){
+    .gauge-card svg{ max-width: 100px; }
+    .gauge-value{ font-size: 1rem; margin-top: -18px; }
+    .gauge-name{ font-size: 0.6rem; }
+    .gauge-range{ display: none; }
+    .header{ gap: 8px; padding: 12px; }
+    .header-id{ gap: 6px; }
+    .header-id .de{ font-size: 0.68rem; }
+    .header-id .call{ font-size: 0.95rem; }
+    .header-title{ font-size: 0.7rem; }
+    .header-clock .utc-time{ font-size: 0.88rem; }
+    .header-clock .utc-date{ font-size: 0.6rem; }
+    .header-clock .local-time{ font-size: 0.76rem; margin-top: 4px; }
+    .header-clock .local-date{ font-size: 0.6rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div>
+      <div class="header-id">
+        <span class="de">DE</span>
+        <span class="call">K5CTW</span>
+      </div>
+      <div class="header-title">Station Dashboard</div>
+    </div>
+    <div class="header-clock">
+      <div class="utc-time" id="utcTime">--:--:--</div>
+      <div class="utc-date" id="utcDate">UTC</div>
+      <div class="local-time" id="localTime">--:--:--</div>
+      <div class="local-date" id="localDate">Local</div>
+    </div>
+  </div>
+
+  <!-- Upcoming contests -->
+  <div class="panel" style="margin-bottom:14px;">
+    <p class="plate-label">Upcoming Contests<span class="src-badge" id="contestSource"></span></p>
+    <div class="contest-ticker">
+      <div class="contest-track" id="contestTrack">
+        <div class="contest-item">Loading contest calendar…</div>
+      </div>
+    </div>
+    <p class="weather-note">Next 8 days, all times UTC. Data: <a href="https://www.contestcalendar.com/" target="_blank" rel="noopener">WA7BNM Contest Calendar</a>.</p>
+  </div>
+
+  <!-- Software -->
+  <div class="panel" style="margin-bottom:14px;">
+    <p class="plate-label">Station Software</p>
+    <p class="soft-note">Each tile is one button: <b>Launch</b> calls a matching Apple Shortcut by name — create one per app on your Mac. Without a shortcut set up (or on iPad, where these can't reach a desktop app), the tile falls back to <b>Open</b>, which just visits the app's website.</p>
+
+    <div class="tile-grid">
+    <div class="tile-card">
+      <div>
+        <span class="tile-title">MacLoggerDX</span>
+        <span class="tile-sub">Logging &amp; DX cluster</span>
+      </div>
+      <div class="tile-actions">
+        <a class="btn primary" href="shortcuts://run-shortcut?name=MacLoggerDX">Launch</a>
+      </div>
+    </div>
+
+    <div class="tile-card">
+      <div>
+        <span class="tile-title">POTA</span>
+        <span class="tile-sub">Parks on the Air</span>
+      </div>
+      <div class="tile-actions">
+        <a class="btn primary" href="https://pota.app/" target="_blank" rel="noopener">Open</a>
+      </div>
+    </div>
+
+    <div class="tile-card">
+      <div>
+        <span class="tile-title">Log4OM</span>
+        <span class="tile-sub">General logging</span>
+      </div>
+      <div class="tile-actions">
+        <a class="btn primary" href="shortcuts://run-shortcut?name=Open%20Log4OM">Launch</a>
+      </div>
+    </div>
+
+    <div class="tile-card">
+      <div>
+        <span class="tile-title">DXLab Suite</span>
+        <span class="tile-sub">Logging &amp; rig control</span>
+      </div>
+      <div class="tile-actions">
+        <a class="btn primary" href="shortcuts://run-shortcut?name=Open%20DXLab">Launch</a>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div class="panel" style="margin-bottom:14px;">
+    <p class="plate-label">Quick Links</p>
+    <div class="tile-grid">
+      <div class="tile-card">
+        <div>
+          <span class="tile-title">MUF map</span>
+          <span class="tile-sub">prop.kc2g.com</span>
+        </div>
+        <div class="tile-actions">
+          <a class="btn primary" href="https://prop.kc2g.com/" target="_blank" rel="noopener">Open</a>
+        </div>
+      </div>
+      <div class="tile-card">
+        <div>
+          <span class="tile-title">DX cluster</span>
+          <span class="tile-sub">dxsummit.fi</span>
+        </div>
+        <div class="tile-actions">
+          <a class="btn primary" href="https://dxsummit.fi/" target="_blank" rel="noopener">Open</a>
+        </div>
+      </div>
+      <div class="tile-card">
+        <div>
+          <span class="tile-title">POTA spots</span>
+          <span class="tile-sub">pota.app</span>
+        </div>
+        <div class="tile-actions">
+          <a class="btn primary" href="https://pota.app/#/" target="_blank" rel="noopener">Open</a>
+        </div>
+      </div>
+      <div class="tile-card">
+        <div>
+          <span class="tile-title">Aurora forecast</span>
+          <span class="tile-sub">NOAA SWPC</span>
+        </div>
+        <div class="tile-actions">
+          <a class="btn primary" href="https://www.swpc.noaa.gov/products/aurora-30-minute-forecast" target="_blank" rel="noopener">Open</a>
+        </div>
+      </div>
+      <div class="tile-card">
+        <div>
+          <span class="tile-title">Day / night map</span>
+          <span class="tile-sub">terminator &amp; greyline</span>
+        </div>
+        <div class="tile-actions">
+          <a class="btn primary" href="https://www.timeanddate.com/worldclock/sunearth.html" target="_blank" rel="noopener">Open</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Band conditions -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="bands-title-row">
+      <p class="plate-label" style="margin-bottom:0;">Band Conditions — 24h (UTC)<span class="src-badge" id="bandSource"></span></p>
+      <div class="heat-legend">
+        <label for="dxTarget" style="color:var(--muted); margin-right:2px;">DX target</label>
+        <select id="dxTarget" class="dx-target-select"></select>
+        <span>Poor</span><span class="bar"></span><span>Good</span>
+      </div>
+    </div>
+    <div class="band-grid-wrap">
+      <div class="band-grid" id="bandGrid"></div>
+    </div>
+    <p class="gauge-note" id="bandNote" style="margin-top:10px;">Estimated from live SFI, K-index, and X-ray flux against a sun-elevation day/night model for your location — not a certified VOACAP run.</p>
+  </div>
+
+  <!-- Propagation -->
+  <div class="panel" style="margin-bottom:14px;">
+    <p class="plate-label">Propagation<span class="src-badge" id="propSource"></span></p>
+
+    <div class="status-banner" id="statusBanner">
+      <span class="status-dot"></span>
+      <span id="statusText">Reading conditions…</span>
+    </div>
+
+    <div class="gauge-row" id="gaugeRow"></div>
+
+    <div class="stat-strip" id="statStrip"></div>
+
+    <p class="gauge-note" id="propNote" style="margin-top:10px;">Loading live data from NOAA SWPC…</p>
+    <p class="wwv-line" id="wwvLine"></p>
+
+    <p class="plate-label" style="margin:16px 0 0;">3-Day Geomagnetic Outlook</p>
+    <div class="outlook-row" id="outlookRow"></div>
+  </div>
+
+  <!-- Local weather -->
+  <div class="panel" style="margin-bottom:14px;">
+    <p class="plate-label">Local Weather<span class="src-badge" id="weatherSource"></span></p>
+    <div class="weather-current" id="weatherCurrent">
+      <span class="weather-temp">--°</span>
+      <div class="weather-meta">Loading local conditions…</div>
+    </div>
+    <div class="weather-days" id="weatherDays"></div>
+    <p class="weather-note" id="weatherNote"></p>
+  </div>
+
+  <footer>
+    Ham Station Dashboard &copy; The Ham Radio Lab d.b.a LateNightLaboratory LLC.
+  </footer>
+
+</div>
+
+<script>
+  // ---------- UTC clock ----------
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function tick(){
+    const d = new Date();
+    document.getElementById('utcTime').textContent =
+      `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}Z`;
+    document.getElementById('utcDate').textContent =
+      d.toUTCString().split(',')[1].trim().slice(0,11).toUpperCase() + ' UTC';
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ---------- Local clock (device time zone) ----------
+  // Reads the time zone straight from the OS/browser — no network call, works offline,
+  // and matches whatever time zone the Mac/iPad is actually set to.
+  function startLocalClock(){
+    const timeEl = document.getElementById('localTime');
+    const dateEl = document.getElementById('localDate');
+    let timezone;
+    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; }
+    catch (err) { timezone = undefined; }
+
+    function update(){
+      const now = new Date();
+      try {
+        timeEl.textContent = new Intl.DateTimeFormat('en-US', {
+          timeZone: timezone, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false,
+        }).format(now);
+        const tzPart = new Intl.DateTimeFormat('en-US', { timeZone: timezone, timeZoneName:'short' })
+          .formatToParts(now).find(p => p.type === 'timeZoneName');
+        dateEl.textContent = tzPart ? tzPart.value : (timezone || 'Local');
+      } catch (err){
+        timeEl.textContent = now.toLocaleTimeString('en-US', { hour12:false });
+        dateEl.textContent = 'Local';
+      }
+    }
+    update();
+    setInterval(update, 1000);
+  }
+  startLocalClock();
+
+  // ---------- Trend arrow helper ----------
+  // goodDir: 'up' if rising is favorable for HF, 'down' if falling is favorable, null if neutral
+  function trendArrow(curr, prev, goodDir){
+    const diff = curr - prev;
+    if (Math.abs(diff) < 0.001) return `<span class="trend flat">\u2013</span>`;
+    const isUp = diff > 0;
+    const cls = goodDir === null ? '' : (goodDir === 'up' ? (isUp ? 'good' : 'bad') : (isUp ? 'bad' : 'good'));
+    return `<span class="trend ${cls}">${isUp ? '\u25b2' : '\u25bc'}</span>`;
+  }
+
+  // ---------- Live data endpoints (NOAA SWPC \u2014 free, CORS-open, no key) ----------
+  const SFI_URL = 'https://services.swpc.noaa.gov/products/summary/10cm-flux.json';
+  const KP_URL = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json';
+  const XRAY_URL = 'https://services.swpc.noaa.gov/json/goes/primary/xrays-6-hour.json';
+  const WIND_URL = 'https://services.swpc.noaa.gov/products/summary/solar-wind-speed.json';
+  const WWV_URL = 'https://services.swpc.noaa.gov/text/wwv.txt';
+  const FORECAST_URL = 'https://services.swpc.noaa.gov/text/3-day-forecast.txt';
+
+  async function fetchJSON(url){ const r = await fetch(url); if (!r.ok) throw new Error(url + ' \u2192 ' + r.status); return r.json(); }
+  async function fetchText(url){ const r = await fetch(url); if (!r.ok) throw new Error(url + ' \u2192 ' + r.status); return r.text(); }
+  async function postJSON(url, body){
+    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(url + ' \u2192 ' + r.status);
+    return r.json();
+  }
+
+  // Point-to-point HF propagation prediction service (see LateNight Labs' vocap-service).
+  // When reachable, the band heatmap calls it for a real tx->rx circuit prediction;
+  // set to null to force the local single-station heuristic instead.
+  const VOACAP_SERVICE_URL = 'https://vocap-service-492094576374.us-central1.run.app';
+
+  // Bounds a promise so a stalled connection doesn't hang the page indefinitely \u2014
+  // failing fast lets the offline/cached fallback kick in instead of just spinning.
+  function withTimeout(promise, ms){
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timed out after ' + ms + 'ms')), ms)),
+    ]);
+  }
+
+  // ---------- Local cache (last-known-good data for offline/standalone use) ----------
+  const CACHE_KEY = 'hamdash_cache_v1';
+  function saveCache(section, data){
+    try {
+      const all = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+      all[section] = { data, savedAt: Date.now() };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(all));
+    } catch (err){ /* localStorage unavailable (private mode, quota) \u2014 just skip caching */ }
+  }
+  function loadCache(section){
+    try {
+      const all = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+      return all[section] || null;
+    } catch (err){ return null; }
+  }
+  function formatAgo(ts){
+    const mins = Math.round((Date.now() - ts) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return Math.round(hrs / 24) + 'd ago';
+  }
+  function setSourceBadge(elId, mode, savedAt){
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.classList.remove('live', 'cached');
+    if (mode === 'live'){ el.classList.add('live'); el.textContent = 'LIVE'; }
+    else if (mode === 'cached'){ el.classList.add('cached'); el.textContent = 'CACHED \u00b7 ' + formatAgo(savedAt); }
+    else { el.textContent = ''; }
+  }
+
+  // X-ray flux expressed as GOES flare class: A < B < C < M < X, each with a 1-9-ish magnitude.
+  const xrayClasses = ['A','B','C','M','X'];
+  function xrayGaugeValue(classIndex, magnitude){ return classIndex + magnitude / 10; }
+  function classifyXray(flux){
+    const thresholds = [1e-4, 1e-5, 1e-6, 1e-7]; // X, M, C, B \u2014 below all of these is A
+    for (let i = 0; i < thresholds.length; i++){
+      if (flux >= thresholds[i]) return { classIndex: 4 - i, magnitude: flux / thresholds[i] };
+    }
+    return { classIndex: 0, magnitude: flux / 1e-8 };
+  }
+
+  // No simple free live feed for sunspot number \u2014 estimate it from SFI via the
+  // standard ITU-R F10.7/SSN relation (F10.7 = 63.75 + 0.728R + 0.00089R\u00b2), solved for R.
+  function estimateSSN(sfi){
+    const a = 0.00089, b = 0.728, c = 63.75 - sfi;
+    const r = (-b + Math.sqrt(Math.max(0, b*b - 4*a*c))) / (2*a);
+    return Math.max(0, Math.round(r));
+  }
+
+  // ---------- Gauge drawing ----------
+  function polar(cx, cy, r, angleDeg){
+    const a = (angleDeg - 180) * Math.PI / 180;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  }
+  function arcPath(cx, cy, r, startDeg, endDeg){
+    const s = polar(cx, cy, r, startDeg);
+    const e = polar(cx, cy, r, endDeg);
+    const large = endDeg - startDeg > 180 ? 1 : 0;
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+  }
+
+  function renderGauges(gauges){
+    const row = document.getElementById('gaugeRow');
+    row.innerHTML = '';
+    gauges.forEach(g => {
+      const cx = 95, cy = 95, r = 74;
+      const pct = Math.max(0, Math.min(1, (g.gaugeValue - g.min) / (g.max - g.min)));
+      const endDeg = pct * 180;
+      const needleId = `needle-${g.id}`;
+
+      const card = document.createElement('div');
+      card.className = 'gauge-card';
+      card.innerHTML = `
+        <svg viewBox="0 0 190 120">
+          <path d="${arcPath(cx,cy,r,0,180)}" stroke="var(--seam)" stroke-width="10" fill="none" stroke-linecap="round"/>
+          <path d="${arcPath(cx,cy,r,0,180*pct)}" stroke="${g.color}" stroke-width="10" fill="none" stroke-linecap="round" style="filter:drop-shadow(0 0 4px ${g.color})"/>
+          <line id="${needleId}" x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - r + 14}"
+                stroke="var(--text)" stroke-width="2" stroke-linecap="round"
+                transform="rotate(-90 ${cx} ${cy})"/>
+          <circle cx="${cx}" cy="${cy}" r="4" fill="var(--text)"/>
+        </svg>
+        <div class="gauge-value" style="color:${g.color}">${g.displayValue}${trendArrow(g.gaugeValue, g.prevValue, g.goodDir)}</div>
+        <div class="gauge-name">${g.label}</div>
+        <div class="gauge-note gauge-range">range ${g.rangeLabel}</div>
+      `;
+      row.appendChild(card);
+
+      // sweep-in animation on load
+      const needle = card.querySelector(`#${needleId}`);
+      needle.style.transition = 'transform 1.1s cubic-bezier(.2,.8,.2,1)';
+      requestAnimationFrame(() => {
+        needle.setAttribute('transform', `rotate(${endDeg - 90} ${cx} ${cy})`);
+      });
+    });
+  }
+
+  function renderStats(stats){
+    const statStrip = document.getElementById('statStrip');
+    statStrip.innerHTML = stats.map(s => `
+      <div class="stat-item">
+        <div class="stat-value">${s.value}${s.unit}${trendArrow(s.value, s.prev, s.goodDir)}</div>
+        <div class="stat-label">${s.label}</div>
+      </div>
+    `).join('');
+  }
+
+  // ---------- Status banner ----------
+  function computeStatus(kidx, xray){
+    const stormFlare = xray.classIndex >= 4 || (xray.classIndex === 3 && xray.magnitude >= 1);
+    const unsettledFlare = xray.classIndex === 3 || (xray.classIndex === 2 && xray.magnitude >= 5);
+    if (kidx >= 6 || stormFlare){
+      return { level:'storm', text:'Active geomagnetic or flare event — expect HF absorption on sunlit paths, and watch for possible VHF aurora openings.' };
+    }
+    if (kidx >= 4 || unsettledFlare){
+      return { level:'unsettled', text:'Unsettled conditions — expect fading on the upper HF bands; 80m and 40m should hold up fine after dark.' };
+    }
+    return { level:'quiet', text:'Quiet, stable conditions — HF should behave predictably across the bands.' };
+  }
+  function renderStatusBanner(kidx, xray){
+    const status = computeStatus(kidx, xray);
+    const banner = document.getElementById('statusBanner');
+    banner.classList.remove('quiet','unsettled','storm');
+    banner.classList.add(status.level);
+    document.getElementById('statusText').textContent = status.text;
+  }
+
+  // ---------- Band conditions heatmap ----------
+  // Continuous heuristic driven by live SFI + K-index + X-ray class, and a real
+  // sun-elevation day/night curve for the station's location (not a boolean).
+  // Not a certified VOACAP/ITU-R P.533 run — but it responds to real conditions
+  // and traces an actual diurnal curve instead of two flat day/night columns.
+  const bands = ['80m','40m','20m','17m','15m','12m','10m'];
+  const dayThresholds = {
+    '80m': [200, 260], '40m': [90, 130], '20m': [70, 100], '17m': [75, 110],
+    '15m': [90, 140], '12m': [110, 160], '10m': [140, 190],
+  };
+  const nightThresholds = {
+    '80m': [60, 80], '40m': [60, 80], '20m': [80, 110], '17m': [100, 130],
+    '15m': [120, 160], '12m': [140, 180], '10m': [160, 210],
+  };
+
+  // Rough solar elevation (degrees) — ignores the equation of time, accurate enough
+  // to place civil twilight within a few minutes for this purpose.
+  function sunElevationDeg(lat, lon, date){
+    const rad = Math.PI / 180;
+    const start = Date.UTC(date.getUTCFullYear(), 0, 0);
+    const dayOfYear = Math.floor((date - start) / 86400000);
+    const decl = -23.44 * Math.cos(rad * (360/365) * (dayOfYear + 10));
+    const utcHours = date.getUTCHours() + date.getUTCMinutes()/60;
+    const solarTime = utcHours + lon/15;
+    const hourAngle = 15 * (solarTime - 12);
+    const sinEl = Math.sin(lat*rad)*Math.sin(decl*rad) + Math.cos(lat*rad)*Math.cos(decl*rad)*Math.cos(hourAngle*rad);
+    return Math.asin(Math.max(-1, Math.min(1, sinEl))) / rad;
+  }
+
+  // 0 = poor, 1 = good, continuous — lets the heatmap show a real gradient
+  // instead of three discrete buckets.
+  function bandLevel(band, dayness, sfi, kidx, xray){
+    const day = dayThresholds[band], night = nightThresholds[band];
+    const fairMin = night[0] + (day[0]-night[0]) * dayness;
+    const goodMin = night[1] + (day[1]-night[1]) * dayness;
+    const lowAnchor = fairMin * 0.5;
+    let level;
+    if (sfi <= lowAnchor) level = 0;
+    else if (sfi <= fairMin) level = 0.5 * (sfi-lowAnchor) / (fairMin-lowAnchor);
+    else if (sfi <= goodMin) level = 0.5 + 0.5 * (sfi-fairMin) / (goodMin-fairMin);
+    else level = 1;
+
+    const isHighBand = ['12m','10m','15m'].includes(band);
+    const kPenalty = isHighBand
+      ? Math.max(0, Math.min(1, (kidx-3)/3)) * 0.6
+      : Math.max(0, Math.min(1, (kidx-5)/3)) * 0.4;
+    level -= kPenalty;
+
+    const xraySeverity = Math.max(0, xray.classIndex - 1 + xray.magnitude/10); // ~0 at B class and below
+    level -= dayness * Math.max(0, Math.min(1, xraySeverity/3)) * 0.6; // sunlit D-layer absorption / blackout risk
+
+    return Math.max(0, Math.min(1, level));
+  }
+
+  function heatColor(level){
+    const red = [217,100,92], amber = [232,163,61], teal = [95,212,196]; // matches --red/--amber/--teal
+    const lo = level <= 0.5 ? red : amber;
+    const hi = level <= 0.5 ? amber : teal;
+    const t = level <= 0.5 ? level/0.5 : (level-0.5)/0.5;
+    const c = lo.map((v,i) => Math.round(v + (hi[i]-v)*t));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  // Pure render: takes a { band: [level0..level23] } map (0=poor..1=good) from
+  // either source below and draws the grid. Neither data source touches the DOM directly.
+  function renderBandGridFromLevels(levels){
+    const grid = document.getElementById('bandGrid');
+    const nowHour = new Date().getUTCHours();
+    let html = '<div class="row-label"></div>';
+    for (let h = 0; h < 24; h++){
+      html += `<div class="hour-head">${h % 3 === 0 ? String(h).padStart(2,'0') : ''}</div>`;
+    }
+    bands.forEach(band => {
+      html += `<div class="row-label">${band}</div>`;
+      for (let h = 0; h < 24; h++){
+        const level = levels[band][h];
+        const nowClass = h === nowHour ? ' now' : '';
+        html += `<div class="band-cell${nowClass}" style="background:${heatColor(level)}" title="${band} @ ${String(h).padStart(2,'0')}:00 UTC"></div>`;
+      }
+    });
+    grid.innerHTML = html;
+  }
+
+  // Local single-station fallback — used when the VOACAP service is unset,
+  // unreachable, and nothing is cached yet for the selected DX target.
+  function computeHeuristicLevels(sfi, kidx, xray, lat, lon){
+    const now = new Date();
+    const levels = {};
+    bands.forEach(band => {
+      levels[band] = [];
+      for (let h = 0; h < 24; h++){
+        const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h));
+        const elevation = sunElevationDeg(lat, lon, d);
+        const dayness = Math.max(0, Math.min(1, (elevation+10)/20));
+        levels[band].push(bandLevel(band, dayness, sfi, kidx, xray));
+      }
+    });
+    return levels;
+  }
+
+  // ---------- VOACAP point-to-point prediction (real circuit, not just local sky) ----------
+  const DX_TARGETS = [
+    // Geographic center of the contiguous US (Lebanon, KS) — a generic North
+    // America reference point. Doubles as two different use cases depending on
+    // where "tx" actually is: a short regional hop (NVIS-ish) when you're
+    // operating from home in North America, or a long DX path back home when
+    // traveling abroad and checking conditions back to North America.
+    { id:'na', label:'North America', lat:39.8283, lon:-98.5795 },
+    { id:'eu', label:'Western Europe', lat:50.1, lon:10.0 },
+    { id:'ja', label:'Japan', lat:35.68, lon:139.65 },
+    { id:'oc', label:'Oceania', lat:-33.87, lon:151.21 },
+    { id:'sa', label:'South America', lat:-23.55, lon:-46.63 },
+    { id:'af', label:'Southern Africa', lat:-26.2, lon:28.05 },
+  ];
+  const BAND_FREQ_MHZ = { '80m':3.6, '40m':7.15, '20m':14.175, '17m':18.1, '15m':21.2, '12m':24.9, '10m':28.5 };
+
+  function initDxTargetSelect(){
+    const sel = document.getElementById('dxTarget');
+    sel.innerHTML = DX_TARGETS.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+    sel.addEventListener('change', () => loadBandHeatmap());
+  }
+  function getSelectedTarget(){
+    const sel = document.getElementById('dxTarget');
+    return DX_TARGETS.find(t => t.id === sel.value) || DX_TARGETS[0];
+  }
+
+  async function fetchVoacapLevels(coords, target, sfi, kidx){
+    const body = {
+      tx: { lat: coords.lat, lon: coords.lon },
+      rx: { lat: target.lat, lon: target.lon },
+      frequenciesMHz: bands.map(b => BAND_FREQ_MHZ[b]),
+      sfi, kIndex: kidx,
+    };
+    const json = await withTimeout(postJSON(VOACAP_SERVICE_URL + '/v1/predict', body), 8000);
+    const levels = {};
+    bands.forEach(band => {
+      const freqKey = String(BAND_FREQ_MHZ[band]);
+      levels[band] = json.hours.map(h => {
+        const f = h.frequencies[freqKey];
+        return f ? f.reliabilityPct / 100 : 0;
+      });
+    });
+    return levels;
+  }
+
+  // Remembers the inputs the heatmap needs so changing the DX target dropdown
+  // can reload it without re-fetching NOAA data.
+  let lastHeatmapInputs = null;
+  function triggerBandHeatmap(coords, sfi, kidx, xray){
+    lastHeatmapInputs = { coords, sfi, kidx, xray };
+    loadBandHeatmap();
+  }
+
+  async function loadBandHeatmap(){
+    if (!lastHeatmapInputs) return;
+    const { coords, sfi, kidx, xray } = lastHeatmapInputs;
+    const target = getSelectedTarget();
+    const cacheKey = 'voacapHeatmap_' + target.id;
+    const bandNote = document.getElementById('bandNote');
+
+    if (!VOACAP_SERVICE_URL){
+      renderBandGridFromLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
+      setSourceBadge('bandSource', 'none');
+      bandNote.textContent = 'Estimated from live SFI, K-index, and X-ray flux against a sun-elevation day/night model for your location — not a certified VOACAP run.';
+      return;
+    }
+
+    if (navigator.onLine === false){
+      const cached = loadCache(cacheKey);
+      if (cached){
+        renderBandGridFromLevels(cached.data);
+        setSourceBadge('bandSource', 'cached', cached.savedAt);
+        bandNote.textContent = 'Standalone / offline — showing the last VOACAP prediction to ' + target.label + ' from ' + formatAgo(cached.savedAt) + '.';
+      } else {
+        renderBandGridFromLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
+        setSourceBadge('bandSource', 'none');
+        bandNote.textContent = 'Offline, and no VOACAP prediction cached yet for ' + target.label + ' — showing the local heuristic instead.';
+      }
+      return;
+    }
+
+    try {
+      const levels = await fetchVoacapLevels(coords, target, sfi, kidx);
+      renderBandGridFromLevels(levels);
+      saveCache(cacheKey, levels);
+      setSourceBadge('bandSource', 'live');
+      bandNote.textContent = 'Live point-to-point prediction to ' + target.label + ' from the VOACAP service (heuristic-v0 model, not certified VOACAP) — SFI ' + Math.round(sfi) + ', K-index ' + kidx.toFixed(1) + '.';
+    } catch (err){
+      console.error('VOACAP service unreachable, falling back:', err);
+      const cached = loadCache(cacheKey);
+      if (cached){
+        renderBandGridFromLevels(cached.data);
+        setSourceBadge('bandSource', 'cached', cached.savedAt);
+        bandNote.textContent = 'VOACAP service unreachable — showing the last prediction to ' + target.label + ' from ' + formatAgo(cached.savedAt) + '.';
+      } else {
+        renderBandGridFromLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
+        setSourceBadge('bandSource', 'none');
+        bandNote.textContent = 'VOACAP service unreachable, and nothing cached yet for ' + target.label + ' — showing the local heuristic instead.';
+      }
+    }
+  }
+
+  // ---------- WWV bulletin + 3-day geomagnetic outlook ----------
+  function parseWWV(text){
+    const aIdxMatch = text.match(/planetary A-index (\d+)/);
+    const outlookMatch = text.match(/Space weather for the next 24 hours[\s\S]*?(?:\n\n|$)/);
+    const outlookText = outlookMatch ? outlookMatch[0].replace(/\s+/g, ' ').trim() : 'No 24-hour outlook available.';
+    return { aIndex: aIdxMatch ? Number(aIdxMatch[1]) : null, outlookText };
+  }
+  function renderWWVLine(outlookText){
+    document.getElementById('wwvLine').innerHTML = '<b>NOAA bulletin:</b> ' + outlookText;
+  }
+
+  function parseForecast(text){
+    const dayMatches = [...text.matchAll(/([A-Z][a-z]{2} \d{1,2})\s+([A-Z][a-z]{2} \d{1,2})\s+([A-Z][a-z]{2} \d{1,2})/g)];
+    const rowMatches = [...text.matchAll(/^\d{2}-\d{2}UT\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/gm)];
+    if (!dayMatches.length || !rowMatches.length) return null;
+    const days = dayMatches[0].slice(1, 4);
+    const maxKp = [0, 0, 0];
+    rowMatches.forEach(row => {
+      for (let i = 0; i < 3; i++) maxKp[i] = Math.max(maxKp[i], parseFloat(row[i+1]));
+    });
+    return { days, maxKp };
+  }
+  function renderOutlook(forecast){
+    const outlookRow = document.getElementById('outlookRow');
+    if (!forecast){
+      outlookRow.innerHTML = '<p class="gauge-note">3-day forecast unavailable.</p>';
+      return;
+    }
+    outlookRow.innerHTML = forecast.days.map((d, i) => {
+      const kp = forecast.maxKp[i];
+      const level = kp >= 6 ? 'storm' : kp >= 4 ? 'unsettled' : 'quiet';
+      const label = kp >= 6 ? 'Storm' : kp >= 4 ? 'Unsettled' : 'Quiet';
+      return '<div class="outlook-day">' +
+          '<div class="outlook-date">' + d + '</div>' +
+          '<div class="outlook-kp">Kp ' + kp.toFixed(1) + '</div>' +
+          '<div class="outlook-label ' + level + '">' + label + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // Draws every propagation widget from one normalized data object — used for
+  // both a fresh live fetch and a cached/offline replay, so they stay identical.
+  function applyPropagation(data){
+    renderGauges([
+      { id:'sfi', label:'Solar Flux (SFI)', gaugeValue:data.sfiNow, prevValue:data.sfiPrev, displayValue:String(Math.round(data.sfiNow)), min:60, max:250, color:'var(--amber)', goodDir:'up', rangeLabel:'60–250' },
+      { id:'kidx', label:'Planetary K-index', gaugeValue:data.kpNow, prevValue:data.kpPrev, displayValue:data.kpNow.toFixed(1), min:0, max:9, color:'var(--amber)', goodDir:'down', rangeLabel:'0–9' },
+      { id:'xray', label:'X-ray Flux', gaugeValue:xrayGaugeValue(data.xrayNow.classIndex, data.xrayNow.magnitude), prevValue:xrayGaugeValue(data.xrayPrev.classIndex, data.xrayPrev.magnitude), displayValue: xrayClasses[data.xrayNow.classIndex] + data.xrayNow.magnitude.toFixed(1), min:0, max:5, color:'var(--amber)', goodDir:'down', rangeLabel:'A–X class' },
+    ]);
+    renderStats([
+      { label:'Sunspot No. (est.)', value:data.ssn, prev:data.ssnPrev, unit:'', goodDir:'up' },
+      { label:'A-index', value:data.aIndexVal, prev:data.aIndexVal, unit:'', goodDir:'down' },
+      { label:'Solar Wind', value:Math.round(data.windNow), prev:Math.round(data.windNow), unit:' km/s', goodDir:null },
+    ]);
+    renderStatusBanner(data.kpNow, data.xrayNow);
+    renderWWVLine(data.outlookText);
+    renderOutlook(data.forecast);
+    triggerBandHeatmap({ lat: data.lat, lon: data.lon }, data.sfiNow, data.kpNow, data.xrayNow);
+  }
+
+  // A cached snapshot has no "10 minutes ago" comparator once it's hours old —
+  // flatten trend arrows to flat rather than imply movement we didn't measure.
+  function flattenTrends(data){
+    return Object.assign({}, data, {
+      sfiPrev: data.sfiNow, kpPrev: data.kpNow, xrayPrev: data.xrayNow, ssnPrev: data.ssn,
+    });
+  }
+
+  function useCachedPropagation(entry, reason){
+    if (!entry){
+      document.getElementById('statusText').textContent = reason + ', and no cached data is saved yet.';
+      document.getElementById('propNote').textContent = 'Nothing to show offline — connect once to save a snapshot.';
+      document.getElementById('bandNote').textContent = 'Nothing to show offline — connect once to save a snapshot.';
+      setSourceBadge('propSource', 'none');
+      setSourceBadge('bandSource', 'none');
+      return;
+    }
+    applyPropagation(flattenTrends(entry.data));
+    setSourceBadge('propSource', 'cached', entry.savedAt);
+    document.getElementById('propNote').textContent = reason + ' — showing the last snapshot from ' + formatAgo(entry.savedAt) + '.';
+  }
+
+  // ---------- Load live propagation data (falls back to cache when offline) ----------
+  async function loadPropagation(coords){
+    const cacheEntry = loadCache('propagation');
+    if (navigator.onLine === false){
+      useCachedPropagation(cacheEntry, 'Standalone / offline');
+      return;
+    }
+    try {
+      const results = await withTimeout(Promise.all([
+        fetchJSON(SFI_URL), fetchJSON(KP_URL), fetchJSON(XRAY_URL), fetchJSON(WIND_URL),
+        fetchText(WWV_URL), fetchText(FORECAST_URL),
+      ]), 8000);
+      const sfiData = results[0], kpData = results[1], xrayData = results[2],
+            windData = results[3], wwvText = results[4], forecastText = results[5];
+
+      const sfiNow = sfiData[sfiData.length-1].flux;
+      const sfiPrev = (sfiData[sfiData.length-2] || {}).flux ?? sfiNow;
+      const kpNow = kpData[kpData.length-1].Kp;
+      const kpPrev = (kpData[kpData.length-2] || {}).Kp ?? kpNow;
+      const xrayLong = xrayData.filter(d => d.energy === '0.1-0.8nm');
+      const xrayNow = classifyXray(xrayLong[xrayLong.length-1].flux);
+      const xrayPrev = classifyXray(xrayLong[Math.max(0, xrayLong.length-11)].flux); // ~10 min earlier
+      const windNow = windData[windData.length-1].proton_speed;
+      const wwvInfo = parseWWV(wwvText);
+      const ssn = estimateSSN(sfiNow);
+
+      const data = {
+        sfiNow, sfiPrev, kpNow, kpPrev, xrayNow, xrayPrev, windNow,
+        ssn, ssnPrev: estimateSSN(sfiPrev), aIndexVal: wwvInfo.aIndex ?? 0,
+        outlookText: wwvInfo.outlookText, forecast: parseForecast(forecastText),
+        lat: coords.lat, lon: coords.lon,
+      };
+      applyPropagation(data);
+      saveCache('propagation', data);
+      setSourceBadge('propSource', 'live');
+      document.getElementById('propNote').textContent = 'Live from NOAA SWPC — SFI, K-index, X-ray flux, and solar wind are measured; sunspot no. is estimated from SFI.';
+    } catch (err){
+      console.error('Propagation data load failed, falling back to cache:', err);
+      useCachedPropagation(cacheEntry, 'Live data unreachable');
+    }
+  }
+
+  // ---------- Local weather ----------
+  const FALLBACK_LAT = 33.23623, FALLBACK_LON = -96.80111; // Prosper, TX 75078 — edit to your station's coordinates
+  const WMO = {
+    0:'Clear', 1:'Mainly clear', 2:'Partly cloudy', 3:'Overcast',
+    45:'Fog', 48:'Rime fog',
+    51:'Light drizzle', 53:'Drizzle', 55:'Dense drizzle',
+    61:'Light rain', 63:'Rain', 65:'Heavy rain',
+    71:'Light snow', 73:'Snow', 75:'Heavy snow', 77:'Snow grains',
+    80:'Rain showers', 81:'Rain showers', 82:'Violent showers',
+    85:'Snow showers', 86:'Heavy snow showers',
+    95:'Thunderstorm', 96:'Thunderstorm w/ hail', 99:'Severe thunderstorm',
+  };
+  function wmoText(code){ return WMO[code] ?? 'Conditions unknown'; }
+
+  function getCoords(){
+    return new Promise(resolve => {
+      if (!navigator.geolocation){ resolve({ lat: FALLBACK_LAT, lon: FALLBACK_LON, isFallback: true }); return; }
+      const timer = setTimeout(() => resolve({ lat: FALLBACK_LAT, lon: FALLBACK_LON, isFallback: true }), 5000);
+      navigator.geolocation.getCurrentPosition(
+        pos => { clearTimeout(timer); resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, isFallback: false }); },
+        () => { clearTimeout(timer); resolve({ lat: FALLBACK_LAT, lon: FALLBACK_LON, isFallback: true }); },
+        { timeout: 5000 }
+      );
+    });
+  }
+
+  function applyWeather(data, coords){
+    const c = data.current;
+    document.getElementById('weatherCurrent').innerHTML =
+      '<span class="weather-temp">' + Math.round(c.temperature_2m) + '°</span>' +
+      '<div class="weather-meta">' +
+        '<b>' + wmoText(c.weathercode) + '</b><br>' +
+        'Feels like ' + Math.round(c.apparent_temperature) + '° &middot; Humidity ' + c.relative_humidity_2m + '%<br>' +
+        'Wind ' + Math.round(c.wind_speed_10m) + ' mph, gusts ' + Math.round(c.wind_gusts_10m) + ' mph' +
+      '</div>';
+
+    const days = data.daily.time;
+    document.getElementById('weatherDays').innerHTML = days.map((d, i) =>
+      '<div class="weather-day">' +
+        '<div class="wd-date">' + new Date(d+'T00:00:00').toLocaleDateString(undefined,{weekday:'short'}) + '</div>' +
+        '<div class="wd-cond">' + wmoText(data.daily.weathercode[i]) + '</div>' +
+        '<div class="wd-temps">' + Math.round(data.daily.temperature_2m_max[i]) + '°/' + Math.round(data.daily.temperature_2m_min[i]) + '°</div>' +
+        '<div class="wd-wind">wind ' + Math.round(data.daily.windspeed_10m_max[i]) + ' mph &middot; ' + data.daily.precipitation_probability_max[i] + '% precip</div>' +
+      '</div>'
+    ).join('');
+
+    document.getElementById('weatherNote').textContent = coords.isFallback
+      ? 'Using a default location (' + FALLBACK_LAT.toFixed(2) + ', ' + FALLBACK_LON.toFixed(2) + ') — allow location access, or edit FALLBACK_LAT/FALLBACK_LON in the page source for your station.'
+      : 'Location from browser geolocation (' + coords.lat.toFixed(2) + ', ' + coords.lon.toFixed(2) + '). Data: Open-Meteo.';
+  }
+
+  function useCachedWeather(entry, coords, reason){
+    if (!entry){
+      document.getElementById('weatherCurrent').innerHTML = '<div class="weather-meta">' + reason + ', and no cached weather is saved yet.</div>';
+      setSourceBadge('weatherSource', 'none');
+      return;
+    }
+    applyWeather(entry.data, coords);
+    setSourceBadge('weatherSource', 'cached', entry.savedAt);
+    document.getElementById('weatherNote').textContent = reason + ' — showing the last forecast from ' + formatAgo(entry.savedAt) + '.';
+  }
+
+  // ---------- Load live weather (falls back to cache when offline) ----------
+  async function loadWeather(coords){
+    const cacheEntry = loadCache('weather');
+    if (navigator.onLine === false){
+      useCachedWeather(cacheEntry, coords, 'Standalone / offline');
+      return;
+    }
+    try {
+      const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + coords.lat + '&longitude=' + coords.lon +
+        '&current=temperature_2m,apparent_temperature,weathercode,wind_speed_10m,wind_gusts_10m,relative_humidity_2m' +
+        '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max,weathercode' +
+        '&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=auto&forecast_days=3';
+      const data = await withTimeout(fetchJSON(url), 8000);
+      applyWeather(data, coords);
+      saveCache('weather', data);
+      setSourceBadge('weatherSource', 'live');
+    } catch (err){
+      console.error('Weather load failed, falling back to cache:', err);
+      useCachedWeather(cacheEntry, coords, 'Live weather unreachable');
+    }
+  }
+
+  // ---------- Upcoming contests (WA7BNM Contest Calendar, 8-day RSS feed) ----------
+  // The feed itself has no CORS headers (it's meant for RSS readers, not browser
+  // fetch), so this goes through rss2json — a service built specifically for
+  // reading RSS from client-side JS (plain CORS proxies like allorigins.win
+  // turned out too unreliable/slow in testing). ARRL's own contest-calendar page
+  // has no feed at all — HTML/PDF only — and links out to WA7BNM as the
+  // canonical machine-readable source, which is why we use it.
+  const CONTEST_RSS_URL = 'https://www.contestcalendar.com/calendar.rss';
+  function contestFeedUrl(){
+    return 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(CONTEST_RSS_URL) + '&_=' + Date.now();
+  }
+  const CONTEST_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function parseContestDate(monthDay, hhmm, now){
+    const parts = monthDay.trim().split(/\s+/);
+    const month = CONTEST_MONTHS.indexOf(parts[0]);
+    const day = parseInt(parts[1], 10);
+    const hour = parseInt(hhmm.slice(0,2), 10);
+    const min = parseInt(hhmm.slice(2,4), 10);
+    if (month < 0 || Number.isNaN(day)) return null;
+    let year = now.getUTCFullYear();
+    if (month === 0 && now.getUTCMonth() === 11) year += 1; // Dec feed listing a Jan contest
+    return new Date(Date.UTC(year, month, day, hour, min));
+  }
+
+  function parseContestWhen(desc, now){
+    let m = desc.match(/^(\d{4})Z,\s*([A-Za-z]{3}\s+\d{1,2})\s+to\s+(\d{4})Z,\s*([A-Za-z]{3}\s+\d{1,2})/);
+    if (m) return { start: parseContestDate(m[2], m[1], now), end: parseContestDate(m[4], m[3], now) };
+    m = desc.match(/^(\d{4})Z-(\d{4})Z,\s*([A-Za-z]{3}\s+\d{1,2})/);
+    if (m) return { start: parseContestDate(m[3], m[1], now), end: parseContestDate(m[3], m[2], now) };
+    return { start: null, end: null };
+  }
+
+  function parseContestFeed(json, now){
+    if (!json || json.status !== 'ok' || !Array.isArray(json.items)) throw new Error('unexpected contest feed response');
+    return json.items.map(item => {
+      const title = item.title || 'Untitled contest';
+      const link = item.link || CONTEST_RSS_URL;
+      const desc = item.description || '';
+      const when = parseContestWhen(desc, now);
+      return { title, link, desc, start: when.start, end: when.end };
+    })
+    .filter(c => !c.end || c.end.getTime() >= now.getTime() - 3600000) // drop ones that ended over an hour ago
+    .sort((a, b) => (a.start ? a.start.getTime() : 0) - (b.start ? b.start.getTime() : 0));
+  }
+
+  function contestBadge(c, now){
+    if (c.start && c.end && now >= c.start && now <= c.end) return '<span class="contest-badge now">LIVE</span>';
+    if (c.start){
+      const hoursAway = (c.start.getTime() - now.getTime()) / 3600000;
+      if (hoursAway >= 0 && hoursAway <= 48) return '<span class="contest-badge soon">SOON</span>';
+    }
+    return '';
+  }
+
+  function formatContestWhen(c){
+    if (!c.start) return c.desc;
+    const hm = (d) => String(d.getUTCHours()).padStart(2,'0') + String(d.getUTCMinutes()).padStart(2,'0');
+    const md = (d) => CONTEST_MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
+    if (!c.end) return hm(c.start) + 'Z, ' + md(c.start);
+    const sameDay = c.start.getUTCFullYear() === c.end.getUTCFullYear() &&
+      c.start.getUTCMonth() === c.end.getUTCMonth() && c.start.getUTCDate() === c.end.getUTCDate();
+    if (sameDay) return hm(c.start) + '-' + hm(c.end) + 'Z, ' + md(c.start);
+    return hm(c.start) + 'Z ' + md(c.start) + ' – ' + hm(c.end) + 'Z ' + md(c.end);
+  }
+
+  function renderContests(contests){
+    const track = document.getElementById('contestTrack');
+    const ticker = track.closest('.contest-ticker');
+    const now = new Date();
+    track.classList.remove('scrolling');
+    track.style.animationDuration = '';
+    if (!contests.length){
+      track.innerHTML = '<div class="contest-item">No contests in the next 8 days.</div>';
+      return;
+    }
+    const html = contests.map(c =>
+      '<div class="contest-item">' +
+        '<a href="' + c.link + '" target="_blank" rel="noopener">' + c.title + '</a>' + contestBadge(c, now) +
+        '<span class="contest-when">' + formatContestWhen(c) + '</span>' +
+      '</div>'
+    ).join('');
+    track.innerHTML = html;
+
+    // Only scroll if the single copy actually overflows the visible strip —
+    // measured in pixels, not item count, since titles vary a lot in length.
+    const singleWidth = track.scrollWidth;
+    const visibleWidth = ticker.clientWidth;
+    if (singleWidth > visibleWidth){
+      track.innerHTML = html + html; // duplicated once for a seamless loop
+      track.classList.add('scrolling');
+      const PX_PER_SECOND = 55;
+      track.style.animationDuration = Math.max(8, singleWidth / PX_PER_SECOND) + 's';
+    }
+  }
+
+  function useCachedContests(entry, reason){
+    if (!entry){
+      document.getElementById('contestTrack').innerHTML = '<div class="contest-item">' + reason + ', and no cached contests are saved yet.</div>';
+      setSourceBadge('contestSource', 'none');
+      return;
+    }
+    const contests = entry.data.map(c => Object.assign({}, c, {
+      start: c.start ? new Date(c.start) : null, end: c.end ? new Date(c.end) : null,
+    }));
+    renderContests(contests);
+    setSourceBadge('contestSource', 'cached', entry.savedAt);
+  }
+
+  async function loadContests(){
+    const cacheEntry = loadCache('contests');
+    if (navigator.onLine === false){
+      useCachedContests(cacheEntry, 'Standalone / offline');
+      return;
+    }
+    try {
+      const json = await withTimeout(fetchJSON(contestFeedUrl()), 8000);
+      const contests = parseContestFeed(json, new Date());
+      renderContests(contests);
+      saveCache('contests', contests.map(c => Object.assign({}, c, {
+        start: c.start ? c.start.toISOString() : null, end: c.end ? c.end.toISOString() : null,
+      })));
+      setSourceBadge('contestSource', 'live');
+    } catch (err){
+      console.error('Contest calendar load failed, falling back to cache:', err);
+      useCachedContests(cacheEntry, 'Live data unreachable');
+    }
+  }
+
+  // Fetch the station's coordinates once and share them between the band
+  // heatmap (sun-elevation model) and the weather panel.
+  (async function boot(){
+    initDxTargetSelect();
+    const coords = await getCoords();
+    loadPropagation(coords);
+    loadWeather(coords);
+    loadContests();
+  })();
+</script>
+</body>
+</html>
