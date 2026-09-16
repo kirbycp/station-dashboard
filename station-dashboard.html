@@ -39,21 +39,53 @@
 
   .wrap{ max-width: 1080px; margin: 0 auto; }
 
-  /* ---------- Header strip ---------- */
+  /* ---------- Header strip (single row: id, best band, moon, clock) ---------- */
   .header{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap: 12px;
+    gap: 20px;
     background: var(--panel);
     border: 1px solid var(--seam);
     border-radius: 6px;
     padding: 18px 22px;
     margin-bottom: 18px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
   .header > div{ min-width: 0; }
   .header-clock{ flex-shrink: 0; }
+
+  /* ---------- Header indicator group (best band + moon) ---------- */
+  .header-indicators{
+    display:flex;
+    align-items:center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .header-band, .header-moon, .header-weather{ display:flex; align-items:center; gap:10px; }
+  .header-indicators .divider{
+    width: 1px;
+    align-self: stretch;
+    background: var(--seam);
+    flex-shrink: 0;
+  }
+  .hdr-ind-label{
+    font-size: 0.66rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .hdr-ind-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .hdr-ind-note{
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .moon-icon{ flex-shrink: 0; display:block; }
   .header-id{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
   .header-id .de{ color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; }
   .header-id .call{
@@ -427,6 +459,9 @@
     .header-title{ font-size: 0.8rem; }
     .header-clock .utc-time{ font-size: 1.05rem; }
     .header-clock .local-time{ font-size: 0.9rem; margin-top: 6px; }
+    .header-indicators{ gap: 16px; }
+    .hdr-ind-value{ font-size: 1rem; }
+    .moon-icon{ width: 32px; height: 32px; }
   }
   @media (max-width: 480px){
     .gauge-card svg{ max-width: 100px; }
@@ -442,6 +477,13 @@
     .header-clock .utc-date{ font-size: 0.6rem; }
     .header-clock .local-time{ font-size: 0.76rem; margin-top: 4px; }
     .header-clock .local-date{ font-size: 0.6rem; }
+    .header-indicators{ gap: 12px; }
+    .hdr-ind-label{ font-size: 0.6rem; }
+    .hdr-ind-value{ font-size: 0.85rem; }
+    .hdr-ind-note{ font-size: 0.62rem; }
+    .moon-icon{ width: 26px; height: 26px; }
+    .hdr-ind-extra{ display:none; }
+    .header-indicators .divider{ display:none; }
   }
 </style>
 </head>
@@ -455,6 +497,35 @@
         <span class="call">K5CTW</span>
       </div>
       <div class="header-title">Station Dashboard</div>
+    </div>
+    <div class="header-indicators">
+      <div class="header-band">
+        <div>
+          <div class="hdr-ind-label">Best Band Now</div>
+          <div class="hdr-ind-value" id="headerBandValue">--</div>
+          <div class="hdr-ind-note" id="headerBandNote">Loading…</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="header-moon">
+        <div id="moonIconWrap"></div>
+        <div>
+          <div class="hdr-ind-label">Moon</div>
+          <div class="hdr-ind-value" id="moonPhaseName">--</div>
+          <div class="hdr-ind-note" id="moonIllumNote">Loading…</div>
+          <div class="hdr-ind-note hdr-ind-extra" id="moonApsisNote"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="header-weather">
+        <div>
+          <div class="hdr-ind-label">Weather</div>
+          <div class="hdr-ind-value" id="headerWeatherValue">--</div>
+          <div class="hdr-ind-note" id="headerWeatherNote">Loading…</div>
+          <div class="hdr-ind-note hdr-ind-extra" id="headerWeatherFeelsNote"></div>
+          <div class="hdr-ind-note hdr-ind-extra" id="headerWeatherWindNote"></div>
+        </div>
+      </div>
     </div>
     <div class="header-clock">
       <div class="utc-time" id="utcTime">--:--:--</div>
@@ -475,9 +546,9 @@
     <p class="weather-note">Next 8 days, all times UTC. Data: <a href="https://www.contestcalendar.com/" target="_blank" rel="noopener">WA7BNM Contest Calendar</a>.</p>
   </div>
 
-  <!-- Software -->
+  <!-- Software & Links -->
   <div class="panel" style="margin-bottom:14px;">
-    <p class="plate-label">Station Software</p>
+    <p class="plate-label">Software &amp; Links</p>
     <p class="soft-note">Each tile is one button: <b>Launch</b> calls a matching Apple Shortcut by name — create one per app on your Mac. Without a shortcut set up (or on iPad, where these can't reach a desktop app), the tile falls back to <b>Open</b>, which just visits the app's website.</p>
 
     <div class="tile-grid">
@@ -521,12 +592,8 @@
       </div>
     </div>
     </div>
-  </div>
 
-  <!-- Quick links -->
-  <div class="panel" style="margin-bottom:14px;">
-    <p class="plate-label">Quick Links</p>
-    <div class="tile-grid">
+    <div class="tile-grid" style="margin-top:14px;">
       <div class="tile-card">
         <div>
           <span class="tile-title">MUF map</span>
@@ -668,6 +735,79 @@
     setInterval(update, 1000);
   }
   startLocalClock();
+
+  // ---------- Moon phase (fully offline, same reasoning as the local clock above:
+  // no network call, no permissions, computed straight from low-precision lunar
+  // theory). Phase/illumination use the standard synodic-month epoch method;
+  // distance uses the leading term of Meeus' low-precision lunar-distance
+  // approximation (Astronomical Algorithms ch. 47) — accurate to within a few
+  // hundred km, plenty to say whether we're heading toward perigee or apogee.
+  const SYNODIC_MONTH = 29.530588853; // days, new moon to new moon
+  const ANOMALISTIC_MEAN_MOTION = 13.064993; // deg/day, mean anomaly rate (perigee to perigee)
+  const KNOWN_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14, 0);
+
+  function daysSinceJ2000(date){ return (date.getTime() - Date.UTC(2000,0,1,12,0,0)) / 86400000; }
+  function normalizeDeg(deg){ return ((deg % 360) + 360) % 360; }
+
+  function moonPhaseInfo(date){
+    const cyclesElapsed = (date.getTime() - KNOWN_NEW_MOON) / 86400000 / SYNODIC_MONTH;
+    const phase = cyclesElapsed - Math.floor(cyclesElapsed); // 0..1, 0 = new moon, 0.5 = full
+    const illumination = (1 - Math.cos(2 * Math.PI * phase)) / 2;
+    const waxing = phase < 0.5;
+
+    const names = [
+      [0.0625, 'New Moon'], [0.1875, 'Waxing Crescent'], [0.3125, 'First Quarter'],
+      [0.4375, 'Waxing Gibbous'], [0.5625, 'Full Moon'], [0.6875, 'Waning Gibbous'],
+      [0.8125, 'Last Quarter'], [0.9375, 'Waning Crescent'], [1.0001, 'New Moon'],
+    ];
+    const name = names.find(([edge]) => phase < edge)[1];
+
+    // Mean anomaly measured from perigee: M'=0/360 is perigee, M'=180 is apogee.
+    const meanAnomaly = normalizeDeg(134.963 + ANOMALISTIC_MEAN_MOTION * daysSinceJ2000(date));
+    const distanceKm = 385001 - 20905 * Math.cos(meanAnomaly * Math.PI / 180);
+    const daysToPerigee = normalizeDeg(360 - meanAnomaly) / ANOMALISTIC_MEAN_MOTION;
+    const daysToApogee = normalizeDeg(180 - meanAnomaly) / ANOMALISTIC_MEAN_MOTION;
+    const nearingPerigee = daysToPerigee <= daysToApogee;
+    const apsisDays = Math.round(nearingPerigee ? daysToPerigee : daysToApogee);
+
+    return { phase, illumination, waxing, name, distanceKm, nearingPerigee, apsisDays };
+  }
+
+  // Illuminated region traced as a limb arc (fixed semicircle, on the lit side)
+  // plus a terminator arc (an ellipse whose horizontal radius is r*|cos theta|,
+  // bulging with or against the limb depending on crescent vs. gibbous) — an
+  // exact terminator, not a circle-overlap approximation, so quarter phases
+  // render as a clean straight line rather than a curved lens shape.
+  function moonIconSVG(phase, sizePx){
+    const r = 36, cx = 40, cy = 40;
+    const theta = phase * 2 * Math.PI;
+    const litRight = theta < Math.PI; // waxing = lit on the right limb
+    const rx = Math.abs(r * Math.cos(theta));
+    const gibbous = Math.cos(theta) < 0;
+    const limbSweep = litRight ? 1 : 0;
+    const termSweep = gibbous ? limbSweep : (1 - limbSweep);
+    const top = `${cx},${cy - r}`, bottom = `${cx},${cy + r}`;
+    const d = `M ${top} A ${r} ${r} 0 0 ${limbSweep} ${bottom} A ${rx} ${r} 0 0 ${termSweep} ${top}`;
+    return `<svg class="moon-icon" viewBox="0 0 80 80" width="${sizePx}" height="${sizePx}">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--panel-raised)"/>
+      <path d="${d}" fill="var(--amber)"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--seam-light)" stroke-width="1.5"/>
+    </svg>`;
+  }
+
+  function renderMoon(){
+    const info = moonPhaseInfo(new Date());
+    document.getElementById('moonIconWrap').innerHTML = moonIconSVG(info.phase, 40);
+    document.getElementById('moonPhaseName').textContent = info.name;
+    document.getElementById('moonIllumNote').textContent =
+      Math.round(info.illumination * 100) + '% illuminated, ' + (info.waxing ? 'waxing' : 'waning');
+    const apsisWhen = info.apsisDays <= 0 ? 'today' : 'in ' + info.apsisDays + 'd';
+    document.getElementById('moonApsisNote').textContent =
+      'Approaching ' + (info.nearingPerigee ? 'perigee' : 'apogee') + ' ' + apsisWhen +
+      ' (' + Math.round(info.distanceKm).toLocaleString() + ' km)';
+  }
+  renderMoon();
+  setInterval(renderMoon, 5 * 60 * 1000);
 
   // ---------- Trend arrow helper ----------
   // goodDir: 'up' if rising is favorable for HF, 'down' if falling is favorable, null if neutral
@@ -900,6 +1040,37 @@
     return `rgb(${c[0]},${c[1]},${c[2]})`;
   }
 
+  // ---------- Header "best band now" indicator ----------
+  // Reads the same { band: [level0..level23] } map the grid renders from, so
+  // it always agrees with whatever's on screen (VOACAP-to-target or the local
+  // heuristic) instead of computing its own separate answer.
+  function bandQualityLabel(level){
+    if (level >= 0.8) return 'Excellent';
+    if (level >= 0.6) return 'Good';
+    if (level >= 0.35) return 'Fair';
+    return 'Poor';
+  }
+  function updateBestBandIndicator(levels){
+    const nowHour = new Date().getUTCHours();
+    let best = null;
+    bands.forEach(band => {
+      const level = levels[band][nowHour];
+      if (!best || level > best.level) best = { band, level };
+    });
+    const valueEl = document.getElementById('headerBandValue');
+    const noteEl = document.getElementById('headerBandNote');
+    valueEl.textContent = best.band;
+    valueEl.style.color = heatColor(best.level);
+    noteEl.textContent = bandQualityLabel(best.level) + ' now';
+  }
+
+  // Grid + header indicator both read the same levels map — call this instead
+  // of renderBandGridFromLevels directly so they never fall out of sync.
+  function applyBandLevels(levels){
+    renderBandGridFromLevels(levels);
+    updateBestBandIndicator(levels);
+  }
+
   // Pure render: takes a { band: [level0..level23] } map (0=poor..1=good) from
   // either source below and draws the grid. Neither data source touches the DOM directly.
   function renderBandGridFromLevels(levels){
@@ -998,7 +1169,7 @@
     const bandNote = document.getElementById('bandNote');
 
     if (!VOACAP_SERVICE_URL){
-      renderBandGridFromLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
+      applyBandLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
       setSourceBadge('bandSource', 'none');
       bandNote.textContent = 'Estimated from live SFI, K-index, and X-ray flux against a sun-elevation day/night model for your location — not a certified VOACAP run.';
       return;
@@ -1007,11 +1178,11 @@
     if (navigator.onLine === false){
       const cached = loadCache(cacheKey);
       if (cached){
-        renderBandGridFromLevels(cached.data);
+        applyBandLevels(cached.data);
         setSourceBadge('bandSource', 'cached', cached.savedAt);
         bandNote.textContent = 'Standalone / offline — showing the last VOACAP prediction to ' + target.label + ' from ' + formatAgo(cached.savedAt) + '.';
       } else {
-        renderBandGridFromLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
+        applyBandLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
         setSourceBadge('bandSource', 'none');
         bandNote.textContent = 'Offline, and no VOACAP prediction cached yet for ' + target.label + ' — showing the local heuristic instead.';
       }
@@ -1020,7 +1191,7 @@
 
     try {
       const levels = await fetchVoacapLevels(coords, target, sfi, kidx);
-      renderBandGridFromLevels(levels);
+      applyBandLevels(levels);
       saveCache(cacheKey, levels);
       setSourceBadge('bandSource', 'live');
       bandNote.textContent = 'Live point-to-point prediction to ' + target.label + ' from the VOACAP service (heuristic-v0 model, not certified VOACAP) — SFI ' + Math.round(sfi) + ', K-index ' + kidx.toFixed(1) + '.';
@@ -1028,11 +1199,11 @@
       console.error('VOACAP service unreachable, falling back:', err);
       const cached = loadCache(cacheKey);
       if (cached){
-        renderBandGridFromLevels(cached.data);
+        applyBandLevels(cached.data);
         setSourceBadge('bandSource', 'cached', cached.savedAt);
         bandNote.textContent = 'VOACAP service unreachable — showing the last prediction to ' + target.label + ' from ' + formatAgo(cached.savedAt) + '.';
       } else {
-        renderBandGridFromLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
+        applyBandLevels(computeHeuristicLevels(sfi, kidx, xray, coords.lat, coords.lon));
         setSourceBadge('bandSource', 'none');
         bandNote.textContent = 'VOACAP service unreachable, and nothing cached yet for ' + target.label + ' — showing the local heuristic instead.';
       }
@@ -1188,6 +1359,17 @@
     });
   }
 
+  // Both the live fetch and the cached/offline replay funnel through here, so
+  // this is also the one place that needs to update the header summary.
+  function updateHeaderWeather(current){
+    document.getElementById('headerWeatherValue').textContent = Math.round(current.temperature_2m) + '°';
+    document.getElementById('headerWeatherNote').textContent = wmoText(current.weathercode);
+    document.getElementById('headerWeatherFeelsNote').textContent =
+      'Feels like ' + Math.round(current.apparent_temperature) + '° · Humidity ' + current.relative_humidity_2m + '%';
+    document.getElementById('headerWeatherWindNote').textContent =
+      'Wind ' + Math.round(current.wind_speed_10m) + ' mph, gusts ' + Math.round(current.wind_gusts_10m) + ' mph';
+  }
+
   function applyWeather(data, coords){
     const c = data.current;
     document.getElementById('weatherCurrent').innerHTML =
@@ -1197,6 +1379,7 @@
         'Feels like ' + Math.round(c.apparent_temperature) + '° &middot; Humidity ' + c.relative_humidity_2m + '%<br>' +
         'Wind ' + Math.round(c.wind_speed_10m) + ' mph, gusts ' + Math.round(c.wind_gusts_10m) + ' mph' +
       '</div>';
+    updateHeaderWeather(c);
 
     const days = data.daily.time;
     document.getElementById('weatherDays').innerHTML = days.map((d, i) =>
@@ -1216,6 +1399,10 @@
   function useCachedWeather(entry, coords, reason){
     if (!entry){
       document.getElementById('weatherCurrent').innerHTML = '<div class="weather-meta">' + reason + ', and no cached weather is saved yet.</div>';
+      document.getElementById('headerWeatherValue').textContent = '--';
+      document.getElementById('headerWeatherNote').textContent = 'No data';
+      document.getElementById('headerWeatherFeelsNote').textContent = '';
+      document.getElementById('headerWeatherWindNote').textContent = '';
       setSourceBadge('weatherSource', 'none');
       return;
     }
