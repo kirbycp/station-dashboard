@@ -535,6 +535,22 @@
     </div>
   </div>
 
+  <!-- Band conditions -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="bands-title-row">
+      <p class="plate-label" style="margin-bottom:0;">Band Conditions — 24h (UTC)<span class="src-badge" id="bandSource"></span></p>
+      <div class="heat-legend">
+        <label for="dxTarget" style="color:var(--muted); margin-right:2px;">DX target</label>
+        <select id="dxTarget" class="dx-target-select"></select>
+        <span>Poor</span><span class="bar"></span><span>Good</span>
+      </div>
+    </div>
+    <div class="band-grid-wrap">
+      <div class="band-grid" id="bandGrid"></div>
+    </div>
+    <p class="gauge-note" id="bandNote" style="margin-top:10px;">Estimated from live SFI, K-index, and X-ray flux against a sun-elevation day/night model for your location — not a certified VOACAP run.</p>
+  </div>
+
   <!-- Upcoming contests -->
   <div class="panel" style="margin-bottom:14px;">
     <p class="plate-label">Upcoming Contests<span class="src-badge" id="contestSource"></span></p>
@@ -640,22 +656,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Band conditions -->
-  <div class="panel" style="margin-bottom:14px;">
-    <div class="bands-title-row">
-      <p class="plate-label" style="margin-bottom:0;">Band Conditions — 24h (UTC)<span class="src-badge" id="bandSource"></span></p>
-      <div class="heat-legend">
-        <label for="dxTarget" style="color:var(--muted); margin-right:2px;">DX target</label>
-        <select id="dxTarget" class="dx-target-select"></select>
-        <span>Poor</span><span class="bar"></span><span>Good</span>
-      </div>
-    </div>
-    <div class="band-grid-wrap">
-      <div class="band-grid" id="bandGrid"></div>
-    </div>
-    <p class="gauge-note" id="bandNote" style="margin-top:10px;">Estimated from live SFI, K-index, and X-ray flux against a sun-elevation day/night model for your location — not a certified VOACAP run.</p>
   </div>
 
   <!-- Propagation -->
