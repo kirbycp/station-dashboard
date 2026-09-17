@@ -696,6 +696,12 @@
 </div>
 
 <script>
+  // ---------- Browser tab title (matches the header callsign) ----------
+  const callsignEl = document.querySelector('.call');
+  if (callsignEl && callsignEl.textContent.trim()){
+    document.title = callsignEl.textContent.trim();
+  }
+
   // ---------- UTC clock ----------
   function pad(n){ return n.toString().padStart(2,'0'); }
   function tick(){
