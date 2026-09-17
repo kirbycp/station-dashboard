@@ -841,10 +841,16 @@
     return r.json();
   }
 
-  // Point-to-point HF propagation prediction service (see LateNight Labs' vocap-service).
-  // When reachable, the band heatmap calls it for a real tx->rx circuit prediction;
-  // set to null to force the local single-station heuristic instead.
-  const VOACAP_SERVICE_URL = 'https://vocap-service-492094576374.us-central1.run.app';
+  // Point-to-point HF propagation prediction service. Points at voacapl-service
+  // (LateNight Labs), which wraps the real, compiled VOACAP engine — not a
+  // heuristic. It's a monthly-median model (smoothed sunspot number + month),
+  // so it does NOT use K-index the way the local fallback below does; kIndex
+  // is still sent in the request for shape-compatibility with vocap-service's
+  // heuristic-v0 API but is ignored server-side. Set to null to force the
+  // local single-station heuristic instead. (vocap-service, the older
+  // heuristic-v0 sibling, remains at
+  // https://vocap-service-492094576374.us-central1.run.app for comparison.)
+  const VOACAP_SERVICE_URL = 'https://voacapl-service-492094576374.us-central1.run.app';
 
   // Bounds a promise so a stalled connection doesn't hang the page indefinitely \u2014
   // failing fast lets the offline/cached fallback kick in instead of just spinning.
@@ -1147,7 +1153,10 @@
       frequenciesMHz: bands.map(b => BAND_FREQ_MHZ[b]),
       sfi, kIndex: kidx,
     };
-    const json = await withTimeout(postJSON(VOACAP_SERVICE_URL + '/v1/predict', body), 8000);
+    // voacapl-service shells out to a real Fortran process per request (plus a
+    // possible Cloud Run cold start) — slower than the old heuristic-v0 call,
+    // so this gets more headroom than a typical fetch here.
+    const json = await withTimeout(postJSON(VOACAP_SERVICE_URL + '/v1/predict', body), 12000);
     const levels = {};
     bands.forEach(band => {
       const freqKey = String(BAND_FREQ_MHZ[band]);
@@ -1200,7 +1209,7 @@
       applyBandLevels(levels);
       saveCache(cacheKey, levels);
       setSourceBadge('bandSource', 'live');
-      bandNote.textContent = 'Live point-to-point prediction to ' + target.label + ' from the VOACAP service (heuristic-v0 model, not certified VOACAP) — SFI ' + Math.round(sfi) + ', K-index ' + kidx.toFixed(1) + '.';
+      bandNote.textContent = 'Live point-to-point prediction to ' + target.label + ' from voacapl (real VOACAP engine; generic reference antenna, not your station’s) — SFI ' + Math.round(sfi) + '.';
     } catch (err){
       console.error('VOACAP service unreachable, falling back:', err);
       const cached = loadCache(cacheKey);
