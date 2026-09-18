@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`station-dashboard.html` is a single self-contained static HTML file: a personal ham radio "station dashboard" / browser start page. There is no build system, no package manager, no test suite, and no server-side code — everything (markup, CSS, JS) lives in this one file and runs entirely client-side.
+`station-dashboard.html` is a single self-contained static HTML file: a personal ham radio "station dashboard" / browser start page. There is no build system, no package manager, no test suite, and no server-side code — everything (markup, CSS, JS) lives in this one file and runs entirely client-side. The only other files are the PWA install/offline support: `manifest.json`, `sw.js`, and `icons/` (see "Offline install (PWA)" below).
 
 ## Commands
 
@@ -43,3 +43,9 @@ Everything is in `station-dashboard.html`: a `<style>` block, the markup, then o
 **Design system.** CSS custom properties in `:root` define the whole dark, hardware-dashboard-style palette (`--amber`, `--teal`, `--red` carry semantic meaning: good/neutral/bad across gauges, band cells, and status banners — reuse them rather than introducing new colors). Fonts (Space Grotesk, IBM Plex Mono) load from Google Fonts. Layout is plain flexbox/CSS grid with two manual breakpoints (720px, 480px); the tile grids (`Station Software`, `Quick Links`) use `repeat(auto-fit, minmax(...))` specifically so they self-balance regardless of item count, rather than fixed column counts.
 
 **Local clock is fully offline.** The local-time display reads `Intl.DateTimeFormat().resolvedOptions().timeZone` directly from the device — no network call, works without permission prompts, and is intentionally *not* IP-geolocation-based (that was tried and replaced; it's unreliable behind VPNs and required a network round-trip for something the OS already knows).
+
+**Offline install (PWA).** iPad Safari can't open local HTML files, so the dashboard is meant to be hosted over HTTPS once and added to the Home Screen. `sw.js` caches the app shell (the HTML, manifest, icons) and the Google Fonts CSS/woff2 files; it does *not* touch the live-data API calls, which keep using the page's own `localStorage` fetch → cache → fallback path. The HTML is served network-first (4s timeout, then cache) so edits show up as soon as the device is online. Things to remember:
+- Service workers only register over http(s), so `file://` is skipped silently. `localhost` counts as secure, so `python3 -m http.server` still works for testing.
+- If you add/rename a file in the `SHELL` list in `sw.js`, bump `CACHE_VERSION`. Edits to `station-dashboard.html` alone don't need a bump.
+- All paths (`start_url`, icons, SW registration) are relative, so it works from a subpath like `user.github.io/station-dashboard/`.
+- The Browser pane in the Claude desktop app can't register service workers at all (fails even for a nonexistent script). Test in real Chrome/Safari instead.

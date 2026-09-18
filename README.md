@@ -1,6 +1,6 @@
 # Ham Station Dashboard
 
-A single-file, self-contained HTML start page for a ham radio station: live propagation, a band-conditions heatmap, local weather, an upcoming-contests ticker, quick links, and one-click launchers for your station software. No build step, no server, no dependencies to install — open `station-dashboard.html` and it runs.
+A single-file, self-contained HTML start page for a ham radio station: live propagation, a band-conditions heatmap, local weather, an upcoming-contests ticker, quick links, and one-click launchers for your station software. No build step, no dependencies to install — open `station-dashboard.html` and it runs. For iPad (which can't open local HTML files), host the folder over HTTPS and install it from the Home Screen; see "Installing on iPad" below.
 
 ## Customizations
 
@@ -29,6 +29,16 @@ Edit these two numbers to your own station's latitude/longitude. This only matte
 ### Local clock
 
 The "Local" time in the header reads the time zone straight from your Mac/iPad's own system setting (`Intl.DateTimeFormat().resolvedOptions().timeZone`) — there's nothing to configure here. Change your device's time zone and it follows automatically.
+
+## Installing on iPad (offline-capable)
+
+iPad Safari won't open a local `.html` file, so host this folder on any static HTTPS host (GitHub Pages, Cloudflare Pages, Netlify) and install it as a Home Screen app:
+
+1. Open `https://<your-host>/<path>/station-dashboard.html` in **Safari** on the iPad.
+2. Tap **Share → Add to Home Screen → Add**.
+3. Launch it once from the Home Screen icon while online (this fills the offline cache), and allow location if you want your real position instead of the fallback.
+
+After that it launches with no network: the page and fonts come from the service worker's cache (`sw.js`), and the live panels show the last saved data with a **CACHED** badge. When online it always fetches the newest page first, so pushing an update to the host is all it takes to update the iPad.
 
 ## Adding or removing Station Software / Quick Links tiles
 
